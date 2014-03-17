@@ -1,0 +1,18 @@
+{
+  "name": "grom358/d8codetools",
+  "description": "Drupal 8 code tools.",
+  "license": "GPL",
+  "authors": [
+    {
+      "name": "Cameron Zemek",
+      "role": "lead"
+    }
+  ],
+  "autoload": {
+    "psr-4" : {"CodeTools\\": "src/"}
+  },
+  "require": {
+    "php": ">=5.4",
+    "grom358/pharborist": "dev-master" 
+  }
+}
