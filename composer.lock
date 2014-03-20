@@ -11,12 +11,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/grom358/pharborist.git",
-                "reference": "9001c04057fa5b3f58a2bb899a69ef93961cdc03"
+                "reference": "f39b009de7fc3b035143a5952fcdf799acb75ab6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/grom358/pharborist/zipball/9001c04057fa5b3f58a2bb899a69ef93961cdc03",
-                "reference": "9001c04057fa5b3f58a2bb899a69ef93961cdc03",
+                "url": "https://api.github.com/repos/grom358/pharborist/zipball/f39b009de7fc3b035143a5952fcdf799acb75ab6",
+                "reference": "f39b009de7fc3b035143a5952fcdf799acb75ab6",
                 "shasum": ""
             },
             "require": {
@@ -44,7 +44,7 @@
                 "standards",
                 "syntax"
             ],
-            "time": "2014-03-17 12:22:41"
+            "time": "2014-03-20 02:28:07"
         },
         {
             "name": "phpunit/php-code-coverage",

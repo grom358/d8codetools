@@ -62,6 +62,8 @@ class FunctionReplacer {
       $this->processFile($filename);
     } catch (ProcessException $e) {
       echo $filename . ': ' . $e->getMessage() . PHP_EOL;
+    } catch (\Pharborist\ParserException $e) {
+      die($filename . ': ' . $e->getMessage() . PHP_EOL);
     }
   }
 
@@ -233,7 +235,7 @@ class FunctionReplacer {
 
     // Replace the function calls.
     foreach ($matching_function_calls as &$name) {
-      $name = $alias . '::checkPlain';
+      $name = $alias . '::' . $this->classMethodName;
     }
 
     return TRUE;
