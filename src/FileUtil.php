@@ -31,9 +31,9 @@ class FileUtil {
    */
   public static function replaceDrupalFunction(
     $directory, $old_function_name, $class_path, $alias_name, $class_method_name) {
-    $extensions = array('php', 'inc', 'module', 'install');
-    $function_replacer = new FunctionReplacer($old_function_name, $class_path, $alias_name, $class_method_name);
-    $callback = array($function_replacer, 'cmdProcessFile');
+    $extensions = array('php', 'inc', 'module', 'install', 'theme');
+    $replacer = new CommandFunctionReplacer($old_function_name, $class_path, $alias_name, $class_method_name);
+    $callback = array($replacer, 'cmdProcessFile');
     self::findFilesWithExtensions($directory, $extensions, $callback);
   }
 }

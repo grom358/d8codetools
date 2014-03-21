@@ -53,27 +53,11 @@ class FunctionReplacer {
   }
 
   /**
-   * Wrapper around processFile for command line usage. Prints out any
-   * error message to standard output.
-   * @param string $filename Filename to process
-   */
-  public function cmdProcessFile($filename) {
-    try {
-      $this->processFile($filename);
-    } catch (ProcessException $e) {
-      echo $filename . ': ' . $e->getMessage() . PHP_EOL;
-    } catch (\Pharborist\ParserException $e) {
-      die($filename . ': ' . $e->getMessage() . PHP_EOL);
-    }
-  }
-
-  /**
    * Replace function calls in file.
-   * @param string $filename Filename to process
+   * @param \Pharborist\Node $tree
    * @throws ProcessException
    */
-  public function processFile($filename) {
-    $tree = Parser::parseFile($filename);
+  public function processTree($tree) {
     if (empty($tree->children)) {
       return;
     }
@@ -142,7 +126,7 @@ class FunctionReplacer {
       $replaced = $this->processNamespace($tree, $i + 1);
     }
     if ($replaced) {
-      file_put_contents($filename, (string) $tree);
+      $tree->modified = TRUE;
     }
   }
 
