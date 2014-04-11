@@ -1,6 +1,9 @@
 <?php
 namespace CodeTools;
 
+/**
+ * Replace reference to procedural function with static method call.
+ */
 class CommentFunctionReplacer {
   /**
    * @var string

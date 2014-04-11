@@ -9,7 +9,6 @@ use Pharborist\UseDeclarationStatementNode;
 
 /**
  * A tool to replace procedural function calls with a static class method.
- * @package CodeTools
  */
 class FunctionReplacer {
   /**

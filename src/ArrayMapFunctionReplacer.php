@@ -6,7 +6,6 @@ use Pharborist\TokenNode;
 
 /**
  * A tool to replace procedural function callbacks to array_map with static class method.
- * @package CodeTools
  */
 class ArrayMapFunctionReplacer {
   /**
@@ -39,11 +38,11 @@ class ArrayMapFunctionReplacer {
 
   /**
    * Replace function calls in file.
-   * @param \Pharborist\Node $tree
+   * @param \Pharborist\StatementBlockNode $tree
    * @throws ProcessException
    */
   public function processTree($tree) {
-    if (empty($tree->children)) {
+    if ($tree->getFirst() === NULL) {
       return;
     }
 
