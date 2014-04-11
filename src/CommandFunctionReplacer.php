@@ -31,7 +31,7 @@ class CommandFunctionReplacer {
       $tree = Parser::parseFile($filename);
       $this->functionReplacer->processTree($tree);
       $this->arrayMapFunctionReplacer->processTree($tree);
-       $this->commentFunctionReplacer->processTree($tree);
+      $this->commentFunctionReplacer->processTree($tree);
       if ($tree->modified) {
         file_put_contents($filename, (string) $tree);
       }
