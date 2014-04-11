@@ -1,9 +1,11 @@
 <?php
 namespace CodeTools;
 
+use Pharborist\DocCommentNode;
+use Pharborist\HiddenNode;
 use Pharborist\Parser;
 use Pharborist\TokenNode;
-use Pharborist\UseDeclarationListNode;
+use Pharborist\UseDeclarationStatementNode;
 
 /**
  * A tool to replace procedural function calls with a static class method.
@@ -54,76 +56,64 @@ class FunctionReplacer {
 
   /**
    * Replace function calls in file.
-   * @param \Pharborist\Node $tree
+   * @param \Pharborist\ParentNode $tree
    * @throws ProcessException
    */
   public function processTree($tree) {
-    if (empty($tree->children)) {
+    if ($tree->getFirst() === NULL) {
       return;
     }
     $replaced = FALSE;
     /** @var \Pharborist\NamespaceNode[] $namespaces */
     $namespaces = $tree->filter('\Pharborist\NamespaceNode');
     if (empty($namespaces)) {
-      $node = $tree->children[0];
+      $node = $tree->getFirst();
       if ($node instanceof TokenNode) {
-        $token = $node->token;
-        if ($token->type !== T_OPEN_TAG) {
+        if ($node->getType() !== T_OPEN_TAG) {
           throw new ProcessException("File must begin with opening PHP tag");
         }
       }
       else {
         throw new ProcessException("File must begin with opening PHP tag");
       }
+      $before_newline_count = 1;
+      $after_newline_count = 1;
 
       // Look for file comment
-      $default_insert_position = 1;
-      $force_after = TRUE;
-      for ($i = 1, $n = count($tree->children); $i < $n; ++$i) {
-        $node = $tree->children[$i];
-        if ($node instanceof TokenNode) {
-          $token = $node->token;
-          if ($token->type === T_DOC_COMMENT) {
-            $doc_comment = $token->text;
-            if (preg_match("|^/\*\*\n \* @file|", $doc_comment)) {
-              $default_insert_position = $i + 1;
-              $force_after = FALSE;
-            }
-            break;
-          }
-          elseif ($token->type !== T_WHITESPACE && $token->type !== T_COMMENT) {
-            // Stop looking if we find token that is neither whitespace or a comment
+      $insertion_point = $node;
+      $child = $node->nextToken();
+      while ($child instanceof HiddenNode) {
+        if ($child instanceof DocCommentNode) {
+          $doc_comment = $child->getText();
+          if (preg_match('|^/\*\*\n \* @file|', $doc_comment)) {
+            $insertion_point = $child;
+            $before_newline_count = 2;
+            $after_newline_count = 1;
             break;
           }
         }
-        else {
-          // Stop looking if we see a statement.
-          break;
-        }
+        $child = $child->nextToken();
       }
-      $replaced = $this->processNamespace($tree, $default_insert_position, $force_after);
+      $replaced = $this->processNamespace($tree, $insertion_point, $before_newline_count, $after_newline_count);
     }
     elseif (count($namespaces) > 1) {
       // Check all namespaces have a body.
       foreach ($namespaces as $namespace) {
-        if (!isset($namespace->body)) {
+        if ($namespace->getBody() === NULL) {
           throw new ProcessException("Namespaces must have a body if more then one namespace in file!");
         }
       }
       // Process each namespace separately.
       foreach ($namespaces as $namespace) {
-        $replaced = $this->processNamespace($namespace->body, 0) || $replaced;
+        $replaced = $this->processNamespace($namespace->getBody(), $namespace->getBody()->previousSibling()) || $replaced;
       }
     }
+    elseif (count($namespaces) === 1 && $namespaces[0]->getBody()) {
+      $namespace = $namespaces[0];
+      $replaced = $this->processNamespace($namespace->getBody(), $namespace->getBody()->previousSibling());
+    }
     else {
-      // Find position in children of the first namespace.
-      $i = -1;
-      foreach ($tree->children as $i => $node) {
-        if ($node === $namespaces[0]) {
-          break;
-        }
-      }
-      $replaced = $this->processNamespace($tree, $i + 1);
+      $replaced = $this->processNamespace($tree, $namespaces[0]);
     }
     if ($replaced) {
       $tree->modified = TRUE;
@@ -131,181 +121,132 @@ class FunctionReplacer {
   }
 
   /**
-   * Find the first node that matches type.
-   * @param \Pharborist\Node[] $nodes Array of nodes
-   * @param string $type Name of class to match
-   * @return bool|int Position of first node, or FALSE if not found
+   * @param \Pharborist\StatementBlockNode $statement_block
+   * @param \Pharborist\Node $insert_after
+   * @param int $before_newline_count
+   * @param int $after_newline_count
+   * @return bool
    */
-  private function findFirst(array $nodes, $type) {
-    foreach ($nodes as $i => $node) {
-      if ($node instanceof $type) {
-        return $i;
-      }
-    }
-    return FALSE;
-  }
-
-  /**
-   * Find the last node that matches type.
-   * @param \Pharborist\Node[] $nodes Array of nodes
-   * @param string $type Name of class to match
-   * @return bool|int Position of last node, or FALSE if not found
-   */
-  private function findLast(array $nodes, $type) {
-    if (empty($nodes)) {
-      return FALSE;
-    }
-    for ($i = count($nodes) - 1; $i >= 0; --$i) {
-      $node = $nodes[$i];
-      if ($node instanceof $type) {
-        return $i;
-      }
-    }
-    return FALSE;
-  }
-
-  /**
-   * Process top level node.
-   * @param \Pharborist\Node $top Root node to process
-   * @param int $default_insertion_position Position to insert if no use declaration found
-   * @param bool $force_after TRUE if forcing newline after when no use declaration found
-   * @return bool TRUE if replacements where made
-   */
-  private function processNamespace(\Pharborist\Node $top, $default_insertion_position, $force_after = FALSE) {
-    $before_newline_count = $after_newline_count = 0;
-    $insertion_position = $default_insertion_position;
-    $alias = $this->className;
-    // Check only one block of use declarations
-    $start_offset = $this->findFirst($top->children, '\Pharborist\UseDeclarationListNode');
-    if ($start_offset !== FALSE) {
-      $insertion_position = $this->findUseInsertionPoint(
-        $top, $start_offset, $alias, $before_newline_count, $after_newline_count);
-    }
-    elseif ($force_after) {
-      $after_newline_count = 1;
-    }
-    else {
-      $before_newline_count = 2;
-    }
-
-    // Find matching function calls.
-    /** @var \Pharborist\FunctionCallNode $function_calls */
-    $function_calls = $top->find('\Pharborist\FunctionCallNode');
-    $matching_function_calls = array();
-    foreach ($function_calls as $function_call) {
-      if ($function_call->functionReference->children[0] instanceof TokenNode) {
-        $name = $function_call->functionReference->children[0]->token;
-        if ($name->text == $this->oldFunctionName) {
-          $matching_function_calls[] = &$name->text;
-        }
-      }
-    }
-
+  private function processNamespace($statement_block, $insert_after, $before_newline_count = 2, $after_newline_count = 0) {
+    $alias = $this->findUseInsertionPoint($statement_block, $insert_after, $before_newline_count, $after_newline_count);
+    $matching_function_calls = $this->findMatchingCalls($statement_block);
     if (empty($matching_function_calls)) {
       return FALSE;
     }
-
-    // Insert use declaration.
-    if ($insertion_position !== -1) {
+    // Insert use declaration
+    if ($insert_after) {
       $snippet = str_repeat("\n", $before_newline_count) .
         'use ' . $this->classPath;
       if ($alias !== $this->className) {
         $snippet .= ' as ' . $this->aliasName;
       }
       $snippet .= ';' . str_repeat("\n", $after_newline_count);
-      $insert_nodes = Parser::parseSnippet($snippet)->children;
-      array_splice($top->children, $insertion_position, 0, $insert_nodes);
+      $insert_node = Parser::parseSnippet($snippet)->getFirst();
+      $insert_before = $insert_after->nextSibling();
+      while ($insert_node !== NULL) {
+        $insert_before->insertBefore(clone $insert_node);
+        $insert_node = $insert_node->nextSibling();
+      }
     }
-
-    // Replace the function calls.
-    foreach ($matching_function_calls as &$name) {
-      $name = $alias . '::' . $this->classMethodName;
+    $new_function_name = $alias . '::' . $this->classMethodName;
+    foreach ($matching_function_calls as $function_call) {
+      $function_call->getNamespacePath()->replace(new TokenNode(T_STRING, $new_function_name, -1, -1));
     }
-
     return TRUE;
   }
 
   /**
-   * Find the position to insert use declaration at.
-   * @param \Pharborist\Node $top Root node to process
-   * @param int $start_offset Position of first use declaration
-   * @param string $alias Name of class
-   * @param int $before_newline_count Newlines to insert before use declaration
-   * @param int $after_newline_count Newlines to insert after use declaration
-   * @return int Position to insert use declaration, -1 if use declaration already exists
-   * @throws ProcessException If unable to find position to insert
+   * @param \Pharborist\StatementBlockNode $statement_block
+   * @param \Pharborist\Node $insert_after
+   * @param int $before_newline_count
+   * @param int $after_newline_count
+   * @return string
+   * @throws ProcessException
    */
-  private function findUseInsertionPoint(\Pharborist\Node $top, $start_offset, &$alias, &$before_newline_count, &$after_newline_count) {
+  private function findUseInsertionPoint($statement_block, &$insert_after, &$before_newline_count, &$after_newline_count) {
+    $alias = $this->className;
     // $alias_invalid is set to TRUE if unable to use the alias.
     $alias_invalid = FALSE;
-    // $uses is array of qualified class names in use declarations.
-    $uses = array();
-    $end_offset = $this->findLast($top->children, '\Pharborist\UseDeclarationListNode');
-    // Check only single block of use declarations.
-    for ($i = $start_offset; $i <= $end_offset; ++$i) {
-      $node = $top->children[$i];
-      if ($node instanceof UseDeclarationListNode) {
-        /** @var \Pharborist\UseDeclarationNode $declaration_node */
-        foreach ($node->declarations as $declaration_node) {
-          $class_path = (string) $declaration_node->namespacePath;
+    $find_insertion = TRUE;
+    /** @var \Pharborist\UseDeclarationStatementNode[] $use_statements */
+    $use_statements = $statement_block->filter('\Pharborist\UseDeclarationStatementNode');
+    if (!empty($use_statements)) {
+      // Check only one block of use declarations
+      $first_use_statement = $use_statements[0];
+      $last_use_statement = $use_statements[count($use_statements) - 1];
+      /** @var \Pharborist\Node $child */
+      $child = $first_use_statement;
+      while ($child !== $last_use_statement) {
+        if (!($child instanceof HiddenNode || $child instanceof UseDeclarationStatementNode)) {
+          throw new ProcessException("Only one block of use declarations is allowed!");
+        }
+        $child = $child->nextSibling();
+      }
+
+      // Find which use declaration to insert after
+      foreach ($use_statements as $use_statement) {
+        foreach ($use_statement->getDeclarations() as $declaration) {
+          $class_path = (string) $declaration->getNamespacePath();
           if ($class_path === $this->classPath) {
             // Already has use declaration for class.
-            if (isset($declaration_node->alias)) {
-              $alias = $declaration_node->alias;
+            if ($declaration->getAlias()) {
+              $alias = (string) $declaration->getAlias();
             }
-            return -1;
+            $insert_after = NULL;
+            return $alias;
           }
           else {
-            if (isset($declaration_node->alias)) {
-              $class_name = (string) $declaration_node->alias;
+            if ($declaration->getAlias()) {
+              $class_name = (string) $declaration->getAlias();
             }
             else {
               $parts = explode('\\', $class_path);
               $class_name = end($parts);
             }
-            $uses[$class_path] = $i;
             if ($class_name === $this->aliasName) {
               $alias_invalid = TRUE;
             }
             if ($class_name === $this->className) {
               $alias = $this->aliasName;
             }
+            if ($find_insertion && strnatcasecmp($this->classPath, $class_path) < 0) {
+              $insert_after = $use_statement->previousSibling();
+              $before_newline_count = 0;
+              $after_newline_count = 1;
+              $find_insertion = FALSE;
+            }
           }
         }
       }
-      elseif ($node instanceof TokenNode) {
-        $type = $node->token->type;
-        if (!in_array($type, array(T_WHITESPACE, T_DOC_COMMENT, T_COMMENT))) {
-          throw new ProcessException("Only whitespace & comments are allowed between use declarations!");
-        }
+
+      if ($alias_invalid && $this->aliasName === $alias) {
+        throw new ProcessException("Unable to insert use declaration!");
       }
-      else {
-        throw new ProcessException("Only one set of use declarations are allowed!");
-      }
-    }
-    if ($alias_invalid && $this->aliasName === $alias) {
-      throw new ProcessException("Unable to insert use declaration!");
-    }
-    // Find insertion point.
-    $paths = array_keys($uses);
-    for ($i = 0, $n = count($paths); $i < $n; $i++) {
-      $path = $paths[$i];
-      if (strnatcasecmp($this->classPath, $path) < 0) {
-        break;
+
+      if ($find_insertion) {
+        $insert_after = $last_use_statement;
+        $before_newline_count = 1;
+        $after_newline_count = 0;
       }
     }
-    if ($i === 0) {
-      $after_newline_count = 1;
-      return $start_offset;
+
+    return $alias;
+  }
+
+  /**
+   * @param \Pharborist\StatementBlockNode $statement_block
+   * @return \Pharborist\FunctionCallNode[]
+   */
+  private function findMatchingCalls($statement_block) {
+    $function_calls = $statement_block->find('\Pharborist\FunctionCallNode');
+    $matching_function_calls = array();
+    /** @var \Pharborist\FunctionCallNode $function_call */
+    foreach ($function_calls as $function_call) {
+      $namespace_path = $function_call->getNamespacePath();
+      if ($this->oldFunctionName === (string) $namespace_path) {
+        $matching_function_calls[] = $function_call;
+      }
     }
-    elseif ($i === count($paths)) {
-      $before_newline_count = 1;
-      return $end_offset + 1;
-    }
-    else {
-      $offset = $uses[$path];
-      $before_newline_count = 1;
-      return $offset - 1;
-    }
+    return $matching_function_calls;
   }
 }

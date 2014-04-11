@@ -20,33 +20,27 @@ class CommentFunctionReplacer {
    * @param string $class_method_name Name of static method to call instead
    */
   public function __construct($old_function_name, $class_path, $class_method_name) {
-    $this->pattern = "/\b{$old_function_name}\(\)/";
-    $parts = explode('\\', $class_path);
-    $class_name = end($parts);
-    //$this->replacement = '\\' . $class_path . '::' . $class_method_name . '()';
-    $this->replacement = "$class_name::$class_method_name()";
+    $this->pattern = '/\b' . $old_function_name . '\(\)/';
+    $this->replacement = '\\' . $class_path . '::' . $class_method_name . '()';
   }
 
   /**
    * Replace function calls in file.
-   * @param \Pharborist\Node $tree
+   * @param \Pharborist\ParentNode $tree
    * @throws ProcessException
    */
   public function processTree($tree) {
-    if (empty($tree->children)) {
+    if ($tree->getChildCount() == 0) {
       return;
     }
 
-    /** @var \Pharborist\TokenNode $token_nodes */
-
-    $token_nodes = $tree->find('\Pharborist\TokenNode');
-    foreach ($token_nodes as $token_node) {
-      if ($token_node->token->type === T_COMMENT || $token_node->token->type === T_DOC_COMMENT) {
-        $text = &$token_node->token->text;
-        $text = preg_replace($this->pattern, $this->replacement, $text, -1, $count);
-        if ($count > 0) {
-          $tree->modified = TRUE;
-        }
+    /** @var \Pharborist\CommentNode[] $comment_nodes */
+    $comment_nodes = $tree->find('\Pharborist\CommentNode');
+    foreach ($comment_nodes as $comment_node) {
+      $text = preg_replace($this->pattern, $this->replacement, $comment_node->getText(), -1, $count);
+      if ($count > 0) {
+        $comment_node->setText($text);
+        $tree->modified = TRUE;
       }
     }
   }
