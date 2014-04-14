@@ -1,7 +1,7 @@
 <?php
 namespace CodeTools;
 
-use Pharborist\Parser;
+use Pharborist\StringNode;
 use Pharborist\TokenNode;
 
 /**
@@ -46,28 +46,23 @@ class ArrayMapFunctionReplacer {
       return;
     }
 
+    $callback_string = "array('\\" . $this->classPath . "', '" . $this->classMethodName . "')";
+
     // Find matching function calls.
-    /** @var \Pharborist\FunctionCallNode $function_calls */
+    /** @var \Pharborist\FunctionCallNode[] $function_calls */
     $function_calls = $tree->find('\Pharborist\FunctionCallNode');
     $matching_function_calls = array();
     foreach ($function_calls as $function_call) {
-      if ($function_call->functionReference->children[0] instanceof TokenNode) {
-        $name = $function_call->functionReference->children[0]->token;
-        if ($name->text == 'array_map' && $function_call->arguments[0] instanceof TokenNode) {
-          $callback_function_name = trim($function_call->arguments[0], '\'"');
-          if ($callback_function_name === $this->oldFunctionName) {
-            $matching_function_calls[] = &$function_call->arguments[0]->token->text;
-          }
+      if ('array_map' === (string) $function_call->getNamespacePath() && $function_call->getArguments()[0] instanceof StringNode) {
+        /** @var \Pharborist\StringNode $callback_arg */
+        $callback_arg = $function_call->getArguments()[0];
+        $callback_function_name = trim((string) $callback_arg, '\'"');
+        if ($callback_function_name === $this->oldFunctionName) {
+          $callback_arg->setText($callback_string);
+          $tree->modified = TRUE;
         }
       }
-    }
 
-    foreach ($matching_function_calls as &$function_call) {
-      $function_call = "array('\\" . $this->classPath . "', '" . $this->classMethodName . "')";
-    }
-
-    if (!empty($matching_function_calls)) {
-      $tree->modified = TRUE;
     }
   }
 }
