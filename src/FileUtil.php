@@ -21,6 +21,24 @@ class FileUtil {
   }
 
   /**
+   * Recursively search a drupal directory calling the callback for each drupal
+   * php file.
+   * @param string $directory Drupal directory
+   * @param callable $callback Callback to call
+   */
+  public static function processDrupalPhp($directory, $callback) {
+    $extensions = array('php', 'inc', 'module', 'install', 'theme');
+    $callback_wrapper = function ($filename) use ($callback) {
+      if (substr($filename, 0, strlen('./core/vendor/')) === './core/vendor/') {
+        // Ignore vendor files
+        return;
+      }
+      $callback($filename);
+    };
+    self::findFilesWithExtensions($directory, $extensions, $callback_wrapper);
+  }
+
+  /**
    * Recursively search a drupal directory replacing procedural function calls
    * with call to class method.
    * @param string $directory Directory to search
