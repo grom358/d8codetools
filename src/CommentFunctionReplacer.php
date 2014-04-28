@@ -1,6 +1,10 @@
 <?php
 namespace CodeTools;
 
+use Pharborist\CommentNode;
+use Pharborist\Filter;
+use Pharborist\LineCommentBlockNode;
+
 /**
  * Replace reference to procedural function with static method call.
  */
@@ -33,16 +37,16 @@ class CommentFunctionReplacer {
    * @throws ProcessException
    */
   public function processTree($tree) {
-    if ($tree->getChildCount() == 0) {
+    if ($tree->childCount() == 0) {
       return;
     }
 
     /** @var \Pharborist\CommentNode[] $comment_nodes */
-    $comment_nodes = $tree->find('\Pharborist\CommentNode');
+    $comment_nodes = $tree->find(Filter::isComment());
     foreach ($comment_nodes as $comment_node) {
       $text = preg_replace($this->pattern, $this->replacement, $comment_node->getText(), -1, $count);
       if ($count > 0) {
-        $comment_node->setText($text);
+        $comment_node->replaceWith(new CommentNode(T_COMMENT, $text));
         $tree->modified = TRUE;
       }
     }

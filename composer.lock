@@ -11,12 +11,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/grom358/pharborist.git",
-                "reference": "ce0003d8830a96012adc7c7fa4f89dbb3b0a072c"
+                "reference": "232f58367b70e2a2a3ec450e6fc43038ffcce726"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/grom358/pharborist/zipball/ce0003d8830a96012adc7c7fa4f89dbb3b0a072c",
-                "reference": "ce0003d8830a96012adc7c7fa4f89dbb3b0a072c",
+                "url": "https://api.github.com/repos/grom358/pharborist/zipball/232f58367b70e2a2a3ec450e6fc43038ffcce726",
+                "reference": "232f58367b70e2a2a3ec450e6fc43038ffcce726",
                 "shasum": ""
             },
             "require": {
@@ -44,7 +44,7 @@
                 "standards",
                 "syntax"
             ],
-            "time": "2014-04-11 10:44:45"
+            "time": "2014-04-24 02:50:08"
         },
         {
             "name": "phpunit/php-code-coverage",
@@ -292,16 +292,16 @@
         },
         {
             "name": "phpunit/phpunit",
-            "version": "3.7.34",
+            "version": "3.7.35",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/phpunit.git",
-                "reference": "248d6ce95e6ca7f0e3135252c0b984bbe1f52f19"
+                "reference": "83f9537e46346f75ed6925441ac259453213c7cc"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/248d6ce95e6ca7f0e3135252c0b984bbe1f52f19",
-                "reference": "248d6ce95e6ca7f0e3135252c0b984bbe1f52f19",
+                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/83f9537e46346f75ed6925441ac259453213c7cc",
+                "reference": "83f9537e46346f75ed6925441ac259453213c7cc",
                 "shasum": ""
             },
             "require": {
@@ -362,7 +362,7 @@
                 "testing",
                 "xunit"
             ],
-            "time": "2014-03-28 11:04:36"
+            "time": "2014-04-21 06:25:54"
         },
         {
             "name": "phpunit/phpunit-mock-objects",
@@ -415,17 +415,17 @@
         },
         {
             "name": "symfony/yaml",
-            "version": "v2.4.3",
+            "version": "v2.4.4",
             "target-dir": "Symfony/Component/Yaml",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/Yaml.git",
-                "reference": "77a41c2835ab7cfe8bf6d15e25d3af8f3eb3bacd"
+                "reference": "65539ecde838f9c0d18b006b2101e3deb4b5c9ff"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/Yaml/zipball/77a41c2835ab7cfe8bf6d15e25d3af8f3eb3bacd",
-                "reference": "77a41c2835ab7cfe8bf6d15e25d3af8f3eb3bacd",
+                "url": "https://api.github.com/repos/symfony/Yaml/zipball/65539ecde838f9c0d18b006b2101e3deb4b5c9ff",
+                "reference": "65539ecde838f9c0d18b006b2101e3deb4b5c9ff",
                 "shasum": ""
             },
             "require": {
@@ -460,7 +460,7 @@
             ],
             "description": "Symfony Yaml Component",
             "homepage": "http://symfony.com",
-            "time": "2014-03-12 18:29:58"
+            "time": "2014-04-18 20:37:09"
         }
     ],
     "packages-dev": [

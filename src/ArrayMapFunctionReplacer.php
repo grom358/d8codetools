@@ -1,7 +1,8 @@
 <?php
 namespace CodeTools;
 
-use Pharborist\StringNode;
+use Pharborist\FunctionCallNode;
+use Pharborist\Node;
 use Pharborist\TokenNode;
 
 /**
@@ -42,27 +43,32 @@ class ArrayMapFunctionReplacer {
    * @throws ProcessException
    */
   public function processTree($tree) {
-    if ($tree->getFirst() === NULL) {
+    if ($tree->firstChild() === NULL) {
       return;
     }
 
     $callback_string = "array('\\" . $this->classPath . "', '" . $this->classMethodName . "')";
 
     // Find matching function calls.
-    /** @var \Pharborist\FunctionCallNode[] $function_calls */
-    $function_calls = $tree->find('\Pharborist\FunctionCallNode');
-    $matching_function_calls = array();
-    foreach ($function_calls as $function_call) {
-      if ('array_map' === (string) $function_call->getNamespacePath() && $function_call->getArguments()[0] instanceof StringNode) {
-        /** @var \Pharborist\StringNode $callback_arg */
-        $callback_arg = $function_call->getArguments()[0];
-        $callback_function_name = trim((string) $callback_arg, '\'"');
-        if ($callback_function_name === $this->oldFunctionName) {
-          $callback_arg->setText($callback_string);
-          $tree->modified = TRUE;
+    $old_function_name = $this->oldFunctionName;
+    /** @var \Pharborist\NodeCollection $function_calls */
+    $function_calls = $tree->find(function (Node $node) use ($old_function_name, $callback_string) {
+      if ($node instanceof FunctionCallNode) {
+        $name = $node->getName()->getText();
+        if ($name === 'array_map') {
+          $arguments = $node->getArguments();
+          $callback = $arguments[0];
+          $callback_name = trim($callback->getText(), '\'"');
+          if ($callback_name === $old_function_name) {
+            /** @var $callback TokenNode */
+            $callback->setText($callback_string);
+            return TRUE;
+          }
         }
       }
+      return FALSE;
+    });
 
-    }
+    $tree->modified = $function_calls->count() > 0;
   }
 }
