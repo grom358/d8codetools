@@ -2,7 +2,7 @@
 <?php
 /**
  * @file
- * Command line launcher for FileUtil::replaceDrupalFunction.
+ * Command line tool to upgrade array syntax.
  */
 require_once 'vendor/autoload.php';
 
