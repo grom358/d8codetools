@@ -33,7 +33,13 @@ class FileUtil {
     $directory, $old_function_name, $class_path, $alias_name, $class_method_name) {
     $extensions = array('php', 'inc', 'module', 'install', 'theme');
     $replacer = new CommandFunctionReplacer($old_function_name, $class_path, $alias_name, $class_method_name);
-    $callback = array($replacer, 'cmdProcessFile');
+    $callback = function ($filename) use ($replacer) {
+      if (substr($filename, 0, strlen('./core/vendor/')) === './core/vendor/') {
+        // Ignore vendor files
+        return;
+      }
+      $replacer->cmdProcessFile($filename);
+    };
     self::findFilesWithExtensions($directory, $extensions, $callback);
   }
 }
