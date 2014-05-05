@@ -69,6 +69,8 @@ class ArrayMapFunctionReplacer {
       return FALSE;
     });
 
-    $tree->modified = $function_calls->count() > 0;
+    if ($function_calls->count() > 0) {
+      $tree->modified = TRUE;
+    }
   }
 }
